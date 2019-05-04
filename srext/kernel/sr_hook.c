@@ -557,9 +557,10 @@ end:
  * [CLI]... "srconf localsid add SID end"
  * @sid: SRv6 SID
  * @behavior: SRv6 behavior
+ * @flavor: SRv6 End Flavor
  */
 
-int add_end(const char *sid, const int behavior)
+int add_end(const char *sid, const int behavior, const int flavor)
 {
     int ret = 0;
     u32 hash_key;
@@ -585,6 +586,7 @@ int add_end(const char *sid, const int behavior)
 
     memcpy(&s6->sid, &bsid, sizeof(struct in6_addr));
     s6->behavior = behavior;
+    s6->flavor = flavor;
     s6->oif = NULL;
     s6->iif = NULL;
     s6->good_pkts = 0;
@@ -667,12 +669,13 @@ EXPORT_SYMBOL(add_end_dx2);
  * [CLI]..."srconf localsid add SID {end.x | end.dx6} NEXTHOP6 TARGETIF"
  * @sid: SRv6 SID
  * @behavior: SRv6 behavior
+ * @flavor: SRv6 End Flavor
  * @nh_ip6: IPv6 address of next hop
  * @mac: MAC address of next hop
  * @oif: target interface
  */
 
-int add_end_x(const char *sid, const int behavior, const char *nh_ip6, const unsigned char *mac,
+int add_end_x(const char *sid, const int behavior, const int flavor, const char *nh_ip6, const unsigned char *mac,
               const char *oif)
 {
     int ret = 0;
@@ -720,6 +723,7 @@ int add_end_x(const char *sid, const int behavior, const char *nh_ip6, const uns
     strcpy(out_if, oif);
     memcpy(&s6->sid, &bsid, sizeof(struct in6_addr));
     s6->behavior = behavior;
+    s6->flavor = flavor;
     s6->oif = out_if;
     s6->iif = NULL;
     s6->good_pkts  = 0;
@@ -1235,6 +1239,7 @@ int show_localsid_all(char *dst, size_t size)
         switch (s6->behavior) {
         case END_CODE:
             sprintf(dst + strlen(dst), "\t Behavior:        %s \n", END);
+	    sprintf(dst + strlen(dst), "\t Flavor:          %s \n", flavor_str[s6->flavor]);	/* XXX */
             break;
 
         case END_DX2_CODE:
@@ -1244,6 +1249,7 @@ int show_localsid_all(char *dst, size_t size)
 
         case END_X_CODE:
             sprintf(dst + strlen(dst), "\t Behavior:        %s \n", END_X);
+	    sprintf(dst + strlen(dst), "\t Flavor:          %s \n", flavor_str[s6->flavor]);	/* XXX */
             if (!s6->mc)
                 sprintf(dst + strlen(dst), "\t Next hop:        %pI6c \n", s6->nh_ip6.s6_addr);
             else
@@ -1375,6 +1381,7 @@ int show_localsid_sid(char *dst, size_t size, const char *sid)
     switch (s6->behavior) {
     case END_CODE:
         sprintf(dst + strlen(dst), "\t Behavior:        %s \n", END);
+	sprintf(dst + strlen(dst), "\t Flavor:          %d \n", s6->flavor);	/* XXX */
         break;
 
     case END_DX2_CODE:
@@ -1384,6 +1391,7 @@ int show_localsid_sid(char *dst, size_t size, const char *sid)
 
     case END_X_CODE:
         sprintf(dst + strlen(dst), "\t Behavior:        %s \n", END_X);
+	sprintf(dst + strlen(dst), "\t Flavor:          %d \n", s6->flavor);	/* XXX */
         if (!s6->mc)
             sprintf(dst + strlen(dst), "\t Next hop:        %pI6c \n", s6->nh_ip6.s6_addr);
         else
@@ -1601,6 +1609,21 @@ int end(struct sk_buff * skb, struct sid6_info * s6)
     update_counters(s6, skb->len, 1);
     srh->segments_left--;
     iph->daddr = *(srh->segments + srh->segments_left);
+
+    if (srh->segments_left == 0) {
+	__u8 srhlen = (srh->hdrlen + 1) * 8;
+	__u16 payload_len = ntohs(iph->payload_len);
+
+	switch (s6->flavor) {
+	case FLAVOR_PSP_CODE:
+	    /* pop srh */
+	    iph->nexthdr = srh->nexthdr;
+	    iph->payload_len = htons(payload_len - srhlen);
+	    memcpy(srh, ((char *)srh) + srhlen, payload_len - srhlen);
+	    skb_reset_transport_header(skb);
+	}
+    }
+
     return 1;
 
 drop:
@@ -1653,6 +1676,20 @@ int end_x(struct sk_buff * skb, struct sid6_info * s6)
     }
     srh->segments_left--;
     iph->daddr = *(srh->segments + srh->segments_left);
+
+    if (srh->segments_left == 0) {
+	__u8 srhlen = (srh->hdrlen + 1) * 8;
+	__u16 payload_len = ntohs(iph->payload_len);
+
+	switch (s6->flavor) {
+	case FLAVOR_PSP_CODE:
+	    /* pop srh */
+	    iph->nexthdr = srh->nexthdr;
+	    iph->payload_len = htons(payload_len - srhlen);
+	    memcpy(srh, ((char *)srh) + srhlen, payload_len - srhlen);
+	    skb_reset_transport_header(skb);
+	}
+    }
 
     if (xcon6(skb, s6) != 0)
         debug_err("%s packet forwarding failed.\n", err_msg);

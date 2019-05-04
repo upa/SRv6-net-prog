@@ -20,6 +20,7 @@
  * struct sid6_info - localsid table entry
  * @sid: SRv6 sid
  * @behavior: SRv6 behavior
+ * @flavor: SRv6 End
  * @nh_ip: IPv4 address of next hop
  * @nh_ip6: IPv6 address of next hop
  * @nh_mac: MAC address of next hop
@@ -37,6 +38,7 @@
 struct sid6_info {
 	struct in6_addr sid;
 	__u8 behavior;
+	__u8 flavor;
 	union {
 		struct in_addr  nh_ip;
 		struct in6_addr nh_ip6;
@@ -80,7 +82,7 @@ struct sdev_info {
  */
 
 /* End */
-int add_end(const char *sid, const int behavior);
+int add_end(const char *sid, const int behavior, const int flavor);
 
 /* End.DX2 */
 int add_end_dx2(const char *sid, const int behavior, const char *oif );
@@ -94,8 +96,8 @@ int add_end_ad6(const char *sid, const int behavior, const char *next,
                 const unsigned char *mac, const char *oif, const char* iif);
 
 /* End.X or End.DX6*/
-int add_end_x(const char *sid, const int behavior, const char *next,
-              const unsigned char *mac, const char *oif);
+int add_end_x(const char *sid, const int behavior, const int flavor,
+	      const char *next, const unsigned char *mac, const char *oif);
 
 /* End.DX4O*/
 int add_end_dx4(const char *sid, const int behavior, const char *next,

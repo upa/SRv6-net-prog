@@ -56,6 +56,7 @@ static struct nla_policy sr_genl_policy[_SR_A_MAX + 1] = {
     [SR_A_COMMAND]      =   { .type = NLA_STRING },
     [SR_A_SID]          =   { .type = NLA_STRING },
     [SR_A_FUNC]         =   { .type = NLA_STRING },
+    [SR_A_FLAVOR]	=   { .type = NLA_STRING },
     [SR_A_NEXT]         =   { .type = NLA_STRING },
     [SR_A_MAC]          =   { .type = NLA_BINARY },
     [SR_A_OIF]          =   { .type = NLA_STRING },
@@ -87,6 +88,7 @@ static void extract_sr_attrs(const struct genl_info *info, struct sr_param *a)
     a->command  = (char *) extract_nl_attr(info, SR_A_COMMAND);
     a->sid      = (char *) extract_nl_attr(info, SR_A_SID);
     a->func     = (char *) extract_nl_attr(info, SR_A_FUNC);
+    a->flavor	= (char *) extract_nl_attr(info, SR_A_FLAVOR);
     a->next     = (char *) extract_nl_attr(info, SR_A_NEXT);
     a->mac      = (struct sr_mac *) extract_nl_attr(info, SR_A_MAC);
     a->oif      = (char *) extract_nl_attr(info, SR_A_OIF);
@@ -117,6 +119,7 @@ static void print_attributes(struct sr_param *sr_attr)
     if (sr_attr->table  != NULL) printk("Table:		%s\n", sr_attr->table);
     if (sr_attr->sid    != NULL) printk("Sid:		%s\n", sr_attr->sid);
     if (sr_attr->func   != NULL) printk("Func:		%s\n", sr_attr->func);
+    if (sr_attr->flavor != NULL) printk("Flavor:        %s\n", sr_attr->flavor);
     if (sr_attr->next   != NULL) printk("NEXT:		%s\n", sr_attr->next);
     if (sr_attr->mac    != NULL) print_mac(sr_attr->mac);
     if (sr_attr->oif    != NULL) printk("OIF:		%s\n", sr_attr->oif);
@@ -177,6 +180,7 @@ static int add_localsid(struct sr_param attr, struct genl_info *info)
     int ret = 0;
     struct genl_msg_data data[1];
     int behavior = BEHAVIORERR;
+    int flavor = 0;
 
     if (attr.sid != NULL && attr.func != NULL) {
 
@@ -216,9 +220,18 @@ static int add_localsid(struct sr_param attr, struct genl_info *info)
         else if (strncmp(attr.func, END_AS6, strlen(attr.func)) == 0)
             behavior = END_AS6_CODE;
 
+	if (attr.flavor != NULL) {
+	    if (strncmp(attr.flavor, FLAVOR_PSP, strlen(attr.flavor)) == 0)
+		flavor = FLAVOR_PSP_CODE;
+	    else if (strncmp(attr.flavor, FLAVOR_USP, strlen(attr.flavor)) == 0)
+		flavor = FLAVOR_USP_CODE;
+	    else if (strncmp(attr.flavor, FLAVOR_USD, strlen(attr.flavor)) == 0)
+		flavor = FLAVOR_USD_CODE;
+	}
+
         switch (behavior) {
         case END_CODE:
-            ret = add_end(attr.sid, behavior);
+            ret = add_end(attr.sid, behavior, flavor);
             break;
 
         case END_DX2_CODE:
@@ -229,7 +242,7 @@ static int add_localsid(struct sr_param attr, struct genl_info *info)
         case END_X_CODE:
         case END_DX6_CODE:
             if (attr.oif != NULL)
-                ret = add_end_x(attr.sid, behavior, attr.next, attr.mac->oct, attr.oif);
+                ret = add_end_x(attr.sid, behavior, flavor, attr.next, attr.mac->oct, attr.oif);
             break;
 
         case END_DX4_CODE:

@@ -68,6 +68,27 @@
 #define END_EAD4_CODE 		13
 #define END_EAD6_CODE 		14
 
+/**
+ * FLAVOR
+ */
+#define FLAVOR_PSP	"psp"
+#define FLAVOR_USP	"usp"
+#define FLAVOR_USD	"usd"
+
+/**
+ * FLAVOR CODE
+ */
+#define FLAVOR_PSP_CODE	1
+#define FLAVOR_USP_CODE	2
+#define FLAVOR_USD_CODE	3
+
+static char *flavor_str[] = {
+	"none",
+	FLAVOR_PSP,
+	FLAVOR_USP,
+	FLAVOR_USD,
+};
+
 enum SR_GNL_COMMANDS {
 	SR_C_ECHO,
 	SR_C_ADD,
@@ -86,6 +107,7 @@ enum SR_GNL_ATTRIBUTES {
 	SR_A_COMMAND,
 	SR_A_SID,
 	SR_A_FUNC,
+	SR_A_FLAVOR,
 	SR_A_NEXT,
 	SR_A_MAC,
 	SR_A_OIF,
@@ -125,6 +147,7 @@ struct sr_param {
 	char *command;
 	char *sid;
 	char *func;
+	char *flavor;
 	char *next;
 	struct sr_mac *mac;
 	char *oif;

@@ -38,6 +38,7 @@ void reset_parameters() {
     params.command  = NULL;
     params.sid      = NULL;
     params.func     = NULL;
+    params.flavor   = NULL;
     params.next     = NULL;
     params.oif      = NULL;
     params.iif      = NULL;
@@ -246,6 +247,12 @@ void set_attributes()
         na = (struct nlattr *) GENLMSG_NLA_NEXT(na);
         set_nl_attr(na, SR_A_FUNC, params.func, strlen(params.func));
         req.n.nlmsg_len += NLMSG_ALIGN(na->nla_len);
+    }
+
+    if (params.flavor != NULL) {
+	na = (struct nlattr *) GENLMSG_NLA_NEXT(na);
+	set_nl_attr(na, SR_A_FLAVOR, params.flavor, strlen(params.flavor));
+	req.n.nlmsg_len += NLMSG_ALIGN(na->nla_len);
     }
 
     if (params.next != NULL) {
@@ -500,10 +507,10 @@ static int usage_localsid(void)
             "       srconf localsid { show | clear-counters } [SID] \n"
             "       srconf localsid del SID \n"
             "       srconf localsid add SID BEHAVIOUR \n"
-            "BEHAVIOUR:= { end | \n"
+            "BEHAVIOUR:= { end (Flavor)| \n"
             "              end.dx2 TARGETIF | \n"
             "              end.dx4 NEXTHOP4 TARGETIF | \n"
-            "              { end.x | end.dx6 } NEXTHOP6 TARGETIF | \n"
+            "              { end.x | end.dx6 } NEXTHOP6 TARGETIF (Flavor) | \n"
             "              { end.ad4 | end.ead4 } NEXTHOP4 TARGETIF SOURCEIF | \n"
             "              { end.am | end.ad6 | end.ead6 } NEXTHOP6 TARGETIF SOURCEIF | \n"
             "              end.as4 NEXTHOP4 TARGETIF SOURCEIF src ADDR segs SIDLIST left SEGMENTLEFT }\n"
@@ -528,7 +535,15 @@ static int usage_srdev(void)
 int add_end(int argc, char **argv)
 {
     int ret = -1;
-    if (argc > 5) {
+    if (argc == 6) {
+	params.flavor = argv[5];
+	if (strncmp(params.flavor, FLAVOR_PSP, strlen(FLAVOR_PSP)) != 0) {
+	    printf("flavor '%s' is not supported\n", params.flavor);
+	    goto end;
+	}
+    }
+
+    if (argc > 7) {
         printf("Too many parameters. Please try \"srconf localsid help\" \n");
         goto end;
     }
@@ -637,7 +652,16 @@ int add_end_x(int argc, char **argv)
     int ret = -1;
     struct in6_addr next_hop;
 
-    if (argc > 8) {
+    if (argc == 9) {
+	params.flavor = argv[8];
+	printf("flavor for end_x");
+	if (strncmp(params.flavor, FLAVOR_PSP, strlen(FLAVOR_PSP)) != 0) {
+	    printf("flavor '%s' is not supported\n", params.flavor);
+	    goto end;
+	}
+    }
+
+    if (argc > 9) {
         printf("Too many parameters. Please try \"srconf localsid help\" \n");
         goto end;
     }
