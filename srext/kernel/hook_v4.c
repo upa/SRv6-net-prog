@@ -13,6 +13,7 @@
  *      2 of the License, or (at your option) any later version.
  */
 
+#include <linux/version.h>
 #include <linux/netfilter_ipv4.h>
 #include <net/ip6_route.h>
 #include "../include/sr_hook.h"
@@ -44,7 +45,11 @@ void ip6_route_input(struct sk_buff *skb)
         .flowi6_proto = iph->nexthdr,
     };
 
+#if LINUX_VERSION_CODE >= KERNEL_VERSION(4, 18, 0)
     skb_dst_set(skb, ip6_route_input_lookup(net, skb->dev, &fl6, skb, flags));
+#else
+    skb_dst_set(skb, ip6_route_input_lookup(net, skb->dev, &fl6, flags));
+#endif
 }
 
 /**

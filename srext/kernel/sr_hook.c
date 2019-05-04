@@ -267,7 +267,7 @@ int xcon2(struct sk_buff* skb, struct sid6_info *s6)
         return -1;
     }
 
-    dev = dev_get_by_name(&init_net, s6->oif);
+    dev = __dev_get_by_name(&init_net, s6->oif);
     if (!dev) {
         debug_err("%s no such interface \n", err_msg);
         return -1;
@@ -305,7 +305,7 @@ int xcon4(struct sk_buff * skb, struct sid6_info * s6)
         return -1;
     }
 
-    dev = dev_get_by_name(&init_net, s6->oif);
+    dev = __dev_get_by_name(&init_net, s6->oif);
     if (!dev) {
         debug_err("%s no such interface \n", err_msg);
         return -1;
@@ -359,7 +359,7 @@ int xcon6(struct sk_buff * skb, struct sid6_info * s6)
         return -1;
     }
 
-    dev = dev_get_by_name(&init_net, s6->oif);
+    dev = __dev_get_by_name(&init_net, s6->oif);
     if (!dev) {
         debug_err("%s no such interface \n", err_msg);
         return -1;
@@ -966,13 +966,13 @@ int add_end_ad6(const char *sid, const int behavior, const char *nh_ip6,
         return SIDEXIST;
     }
 
-    out = dev_get_by_name(&init_net, oif);
+    out = __dev_get_by_name(&init_net, oif);
     if (!out) {
         debug_err("%s invalid target interface\n", err_msg);
         return INVNEXTHOP6;
     }
 
-    in = dev_get_by_name(&init_net, iif);
+    in = __dev_get_by_name(&init_net, iif);
     if (!in) {
         debug_err("%s invalid source interface \n", err_msg);
         return INVNEXTHOP6;
